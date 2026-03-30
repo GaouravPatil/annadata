@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session as DBSession
 from pydantic import BaseModel
 from models.database import Message, Session as ChatSession, get_db
 from jose import jwt, JWTError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uuid, os
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter()
 bearer = HTTPBearer()
@@ -13,9 +16,12 @@ SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
 
 def get_farmer_id(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
     try:
+        print("TOKEN RECEIVED:", credentials.credentials)
+        print("SECRET KEY:", SECRET_KEY)
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=["HS256"])
         return payload["farmer_id"]
-    except JWTError:
+    except JWTError as e:
+        print("Invalid token",e)
         raise HTTPException(status_code=401, detail="Invalid token")
 
 class ChatRequest(BaseModel):
@@ -25,10 +31,9 @@ class ChatRequest(BaseModel):
     longitude: float | None = None
 
 @router.post("/chat")
-def chat(req: ChatRequest, db: Session = Depends(get_db),
+def chat(req: ChatRequest, db: DBSession = Depends(get_db),
          farmer_id: str = Depends(get_farmer_id)):
 
-    # create session if none provided
     session_id = req.session_id
     if not session_id:
         session = ChatSession(id=str(uuid.uuid4()), farmer_id=farmer_id)
@@ -36,7 +41,6 @@ def chat(req: ChatRequest, db: Session = Depends(get_db),
         db.commit()
         session_id = session.id
 
-    # save user message
     user_msg = Message(
         id=str(uuid.uuid4()),
         session_id=session_id,
@@ -46,10 +50,8 @@ def chat(req: ChatRequest, db: Session = Depends(get_db),
     )
     db.add(user_msg)
 
-    # --- AI reply goes here in Day 6, for now return a stub ---
     reply = f"Hello farmer! You asked: '{req.message}'. AI agent coming soon."
 
-    # save assistant message
     ai_msg = Message(
         id=str(uuid.uuid4()),
         session_id=session_id,
@@ -63,10 +65,9 @@ def chat(req: ChatRequest, db: Session = Depends(get_db),
     return {"reply": reply, "session_id": session_id}
 
 @router.get("/history/{session_id}")
-def history(session_id: str, db: Session = Depends(get_db),
+def history(session_id: str, db: DBSession = Depends(get_db),
             farmer_id: str = Depends(get_farmer_id)):
     messages = db.query(Message).filter(
         Message.session_id == session_id
     ).order_by(Message.created_at).all()
-
     return [{"role": m.role, "content": m.content} for m in messages]

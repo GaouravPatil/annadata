@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session as DBSession
 from pydantic import BaseModel
 from models.database import Farmer, get_db
 from jose import jwt
-from passlib.context import CryptContext
 import uuid, os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter()
-pwd_context = CryptContext(schemes=["bcrypt"])
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
 
 class RegisterRequest(BaseModel):
@@ -17,10 +18,9 @@ class RegisterRequest(BaseModel):
     location: str = ""
 
 @router.post("/register")
-def register(req: RegisterRequest, db: Session = Depends(get_db)):
+def register(req: RegisterRequest, db: DBSession = Depends(get_db)):
     existing = db.query(Farmer).filter(Farmer.phone == req.phone).first()
     if existing:
-        # already registered — just return a token
         token = jwt.encode({"farmer_id": existing.id}, SECRET_KEY, algorithm="HS256")
         return {"token": token, "farmer_id": existing.id}
 
