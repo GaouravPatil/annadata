@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from models.database import Message, Session as ChatSession, get_db
 from jose import jwt, JWTError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from services.agent import get_ai_response
 import uuid, os
 from datetime import datetime
 from dotenv import load_dotenv
@@ -16,12 +17,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
 
 def get_farmer_id(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
     try:
-        print("TOKEN RECEIVED:", credentials.credentials)
-        print("SECRET KEY:", SECRET_KEY)
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=["HS256"])
         return payload["farmer_id"]
     except JWTError as e:
-        print("Invalid token",e)
         raise HTTPException(status_code=401, detail="Invalid token")
 
 class ChatRequest(BaseModel):
@@ -31,11 +29,11 @@ class ChatRequest(BaseModel):
     longitude: float | None = None
 
 @router.post("/chat")
-def chat(req: ChatRequest, db: DBSession = Depends(get_db),
-         farmer_id: str = Depends(get_farmer_id)):
+async def chat(req: ChatRequest, db: DBSession = Depends(get_db),
+               farmer_id: str = Depends(get_farmer_id)):
 
     session_id = req.session_id
-    if not session_id:
+    if not session_id or session_id == "null":
         session = ChatSession(id=str(uuid.uuid4()), farmer_id=farmer_id)
         db.add(session)
         db.commit()
@@ -49,8 +47,13 @@ def chat(req: ChatRequest, db: DBSession = Depends(get_db),
         created_at=datetime.utcnow()
     )
     db.add(user_msg)
+    db.commit()
 
-    reply = f"Hello farmer! You asked: '{req.message}'. AI agent coming soon."
+    reply = await get_ai_response(
+        message=req.message,
+        lat=req.latitude,
+        lon=req.longitude
+    )
 
     ai_msg = Message(
         id=str(uuid.uuid4()),
