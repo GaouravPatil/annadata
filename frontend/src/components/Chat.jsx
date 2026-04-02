@@ -13,15 +13,37 @@ export default function Chat({ token, onLogout }) {
     const [sessions, setSessions] = useState([])
     const bottomRef = useRef(null)
 
+    const headers = { Authorization: `Bearer ${token}` }
+
     useEffect(() => {
         navigator.geolocation.getCurrentPosition(pos => {
             setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude })
         })
+        loadSessions()
     }, [])
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" })
     }, [messages])
+
+    async function loadSessions() {
+        try {
+            const res = await axios.get(`${API}/sessions`, { headers })
+            setSessions(res.data)
+        } catch (err) {
+            console.log("Could not load sessions", err)
+        }
+    }
+
+    async function loadHistory(sid) {
+        try {
+            const res = await axios.get(`${API}/history/${sid}`, { headers })
+            setMessages(res.data)
+            setSessionId(sid)
+        } catch (err) {
+            console.log("Could not load history", err)
+        }
+    }
 
     async function sendMessage() {
         if (!input.trim() || loading) return
@@ -36,18 +58,15 @@ export default function Chat({ token, onLogout }) {
                 session_id: sessionId,
                 latitude: location.lat,
                 longitude: location.lon
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
+            }, { headers })
 
             setSessionId(res.data.session_id)
             setMessages(prev => [...prev, { role: "assistant", content: res.data.reply }])
-            if (!sessions.includes(res.data.session_id)) {
-                setSessions(prev => [...prev, res.data.session_id])
-            }
+            loadSessions()
         } catch (err) {
             setMessages(prev => [...prev, {
-                role: "assistant", content: "Sorry, something went wrong. Please try again."
+                role: "assistant",
+                content: "Sorry, something went wrong. Please try again."
             }])
         } finally {
             setLoading(false)
@@ -64,7 +83,7 @@ export default function Chat({ token, onLogout }) {
 
             {/* Sidebar */}
             <div style={{
-                width: "220px", background: "#166534", color: "white",
+                width: "240px", background: "#166534", color: "white",
                 display: "flex", flexDirection: "column", padding: "1rem"
             }}>
                 <h2 style={{ margin: "0 0 1rem", fontSize: "18px" }}>🌾 AnnaData</h2>
@@ -74,14 +93,26 @@ export default function Chat({ token, onLogout }) {
                     fontWeight: "500", marginBottom: "1rem"
                 }}>+ New Chat</button>
 
+                {/* Session list from DB */}
                 <div style={{ flex: 1, overflowY: "auto" }}>
-                    {sessions.map((s, i) => (
-                        <div key={s} style={{
-                            padding: "8px", borderRadius: "6px", cursor: "pointer",
-                            background: s === sessionId ? "rgba(255,255,255,0.2)" : "transparent",
-                            fontSize: "13px", marginBottom: "4px"
-                        }} onClick={() => setSessionId(s)}>
-                            Chat {i + 1}
+                    {sessions.length === 0 && (
+                        <p style={{ fontSize: "12px", opacity: 0.6, textAlign: "center", marginTop: "1rem" }}>
+                            No chats yet
+                        </p>
+                    )}
+                    {sessions.map((s) => (
+                        <div key={s.session_id} onClick={() => loadHistory(s.session_id)} style={{
+                            padding: "10px 8px", borderRadius: "6px", cursor: "pointer",
+                            background: s.session_id === sessionId ? "rgba(255,255,255,0.2)" : "transparent",
+                            fontSize: "12px", marginBottom: "4px", lineHeight: "1.4",
+                            borderLeft: s.session_id === sessionId ? "3px solid white" : "3px solid transparent"
+                        }}>
+                            <div style={{ fontWeight: "500", marginBottom: "2px" }}>
+                                {s.title}
+                            </div>
+                            <div style={{ opacity: 0.6, fontSize: "11px" }}>
+                                {new Date(s.created_at).toLocaleDateString()}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -105,11 +136,25 @@ export default function Chat({ token, onLogout }) {
                 <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem" }}>
                     {messages.length === 0 && (
                         <div style={{ textAlign: "center", color: "#9ca3af", marginTop: "4rem" }}>
-                            <p style={{ fontSize: "32px" }}>🌾</p>
-                            <p>Ask me anything about farming!</p>
-                            <p style={{ fontSize: "13px" }}>Weather, crops, market prices, pest control...</p>
+                            <p style={{ fontSize: "48px" }}>🌾</p>
+                            <p style={{ fontSize: "18px", marginBottom: "8px" }}>
+                                Welcome to AnnaData
+                            </p>
+                            <p style={{ fontSize: "13px" }}>
+                                Ask me about crops, weather, market prices, pest control...
+                            </p>
+                            <div style={{ marginTop: "1.5rem", display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
+                                {["What crop should I grow?", "Onion price in Maharashtra?", "My tomato has pests", "How to increase soil fertility?"].map(q => (
+                                    <button key={q} onClick={() => setInput(q)} style={{
+                                        background: "white", border: "1px solid #d1d5db",
+                                        borderRadius: "20px", padding: "6px 14px",
+                                        fontSize: "13px", cursor: "pointer", color: "#374151"
+                                    }}>{q}</button>
+                                ))}
+                            </div>
                         </div>
                     )}
+
                     {messages.map((m, i) => (
                         <div key={i} style={{
                             display: "flex",
@@ -131,6 +176,7 @@ export default function Chat({ token, onLogout }) {
                             </div>
                         </div>
                     ))}
+
                     {loading && (
                         <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: "12px" }}>
                             <div style={{
@@ -161,11 +207,12 @@ export default function Chat({ token, onLogout }) {
                         }}
                     />
                     <button onClick={sendMessage} disabled={loading} style={{
-                        background: "#16a34a", color: "white", border: "none",
-                        borderRadius: "24px", padding: "10px 20px",
-                        cursor: "pointer", fontWeight: "500", fontSize: "14px"
+                        background: loading ? "#86efac" : "#16a34a",
+                        color: "white", border: "none", borderRadius: "24px",
+                        padding: "10px 20px", cursor: "pointer",
+                        fontWeight: "500", fontSize: "14px"
                     }}>
-                        Send
+                        {loading ? "..." : "Send"}
                     </button>
                 </div>
             </div>

@@ -7,6 +7,7 @@ annotated-types==0.7.0
 anyio==4.13.0
 attrs==26.1.0
 bcrypt==5.0.0
+cachetools==7.0.5
 certifi==2026.2.25
 cffi==2.0.0
 charset-normalizer==3.4.6
@@ -27,6 +28,7 @@ google-genai==1.69.0
 google-generativeai==0.8.6
 googleapis-common-protos==1.73.1
 greenlet==3.3.2
+groq==1.1.2
 grpcio==1.80.0
 grpcio-status==1.71.2
 h11==0.16.0
@@ -37,7 +39,7 @@ httpx-sse==0.4.3
 idna==3.11
 jsonpatch==1.33
 jsonpointer==3.1.1
-langchain==1.2.13
+langchain==1.2.14
 langchain-classic==1.0.3
 langchain-community==0.4.1
 langchain-core==1.2.23

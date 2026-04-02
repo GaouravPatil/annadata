@@ -1,6 +1,7 @@
 import httpx
 import os
 from services.weather import get_weather
+from services.cache import get_session_history, add_to_session
 from dotenv import load_dotenv
 from groq import Groq
 
@@ -53,7 +54,7 @@ def detect_query_type(message: str) -> dict:
         "crop_mentioned": next((w for w in ["wheat", "rice", "onion", "tomato", "cotton", "sugarcane", "soybean", "maize", "गेहूं", "चावल", "प्याज"] if w in message_lower), None)
     }
 
-async def get_ai_response(message: str, lat: float = None, lon: float = None, language: str = "en") -> str:
+async def get_ai_response(message: str, lat: float = None, lon: float = None, language: str = "en", session_id: str = None) -> str:
     try:
         query_info = detect_query_type(message)
         context_parts = []
@@ -71,24 +72,42 @@ async def get_ai_response(message: str, lat: float = None, lon: float = None, la
 
         context = "\n\n".join(context_parts) if context_parts else ""
 
-        prompt = f"""You are AnnaData, an AI agricultural assistant for Indian farmers.
+        # build messages with history
+        messages = [
+            {
+                "role": "system",
+                "content": f"""You are AnnaData, an AI agricultural assistant for Indian farmers.
 Help farmers with crop advice, weather insights, market prices and farming guidance.
 Always respond in the same language the farmer uses (Hindi, Marathi, or English).
 Keep responses clear, practical and actionable. Avoid technical jargon.
 Be encouraging and respectful. Give specific actionable advice.
+{f'Real-time data available:{chr(10)}{context}' if context else ''}"""
+            }
+        ]
 
-{f'Real-time data available:{chr(10)}{context}' if context else ''}
+        # add conversation history (last 6 messages only to save tokens)
+        if session_id:
+            history = get_session_history(session_id)
+            for msg in history[-6:]:
+                messages.append(msg)
 
-Farmer asks: {message}
-
-Provide helpful, practical farming advice based on the above."""
+        # add current message
+        messages.append({"role": "user", "content": message})
 
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             max_tokens=1024
         )
-        return response.choices[0].message.content
+
+        reply = response.choices[0].message.content
+
+        # save to cache
+        if session_id:
+            add_to_session(session_id, "user", message)
+            add_to_session(session_id, "assistant", reply)
+
+        return reply
 
     except Exception as e:
         return f"Sorry, I could not process your request right now. ({str(e)})"
