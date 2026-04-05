@@ -2,6 +2,7 @@ import httpx
 import os
 from services.weather import get_weather
 from services.cache import get_session_history, add_to_session
+from services.rag import search_knowledge_base
 from dotenv import load_dotenv
 from groq import Groq
 
@@ -51,6 +52,7 @@ def detect_query_type(message: str) -> dict:
     return {
         "needs_weather": any(w in message_lower for w in ["weather", "rain", "temperature", "forecast", "irrigation", "water", "मौसम", "बारिश"]),
         "needs_price": any(w in message_lower for w in ["price", "market", "mandi", "sell", "rate", "cost", "भाव", "मंडी"]),
+        "needs_rag": any(w in message_lower for w in ["scheme", "government", "pm-kisan", "pmfby", "insurance", "subsidy", "storage", "pest", "disease", "fertilizer", "how to grow", "cultivat", "harvest", "helpline", "yojana", "किसान", "योजना", "कीट", "बीमा"]),
         "crop_mentioned": next((w for w in ["wheat", "rice", "onion", "tomato", "cotton", "sugarcane", "soybean", "maize", "गेहूं", "चावल", "प्याज"] if w in message_lower), None)
     }
 
@@ -67,12 +69,15 @@ async def get_ai_response(message: str, lat: float = None, lon: float = None, la
             price_data = await get_mandi_prices(query_info["crop_mentioned"])
             context_parts.append(price_data)
 
+        if query_info["needs_rag"] or query_info["crop_mentioned"]:
+            rag_data = search_knowledge_base(message)
+            context_parts.append(rag_data)
+
         if lat and lon:
             context_parts.append(f"Farmer location: latitude={lat}, longitude={lon} (Maharashtra, India region)")
 
         context = "\n\n".join(context_parts) if context_parts else ""
 
-        # build messages with history
         messages = [
             {
                 "role": "system",
@@ -81,17 +86,15 @@ Help farmers with crop advice, weather insights, market prices and farming guida
 Always respond in the same language the farmer uses (Hindi, Marathi, or English).
 Keep responses clear, practical and actionable. Avoid technical jargon.
 Be encouraging and respectful. Give specific actionable advice.
-{f'Real-time data available:{chr(10)}{context}' if context else ''}"""
+{f'Real-time data and knowledge available:{chr(10)}{context}' if context else ''}"""
             }
         ]
 
-        # add conversation history (last 6 messages only to save tokens)
         if session_id:
             history = get_session_history(session_id)
             for msg in history[-6:]:
                 messages.append(msg)
 
-        # add current message
         messages.append({"role": "user", "content": message})
 
         response = client.chat.completions.create(
@@ -102,7 +105,6 @@ Be encouraging and respectful. Give specific actionable advice.
 
         reply = response.choices[0].message.content
 
-        # save to cache
         if session_id:
             add_to_session(session_id, "user", message)
             add_to_session(session_id, "assistant", reply)
