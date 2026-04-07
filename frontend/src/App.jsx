@@ -9,6 +9,7 @@ export default function App() {
   function handleLogin(token, farmerId) {
     localStorage.setItem("token", token)
     localStorage.setItem("farmer_id", farmerId)
+
     setToken(token)
     setFarmerId(farmerId)
   }
