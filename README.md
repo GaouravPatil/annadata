@@ -12,7 +12,7 @@
 
 ---
 
-> 🏆 *Built with passion for India's 140 million farmers.*
+> 🏆 *Built with passion for India's 140 million farmers.*"
 
 </div>
 
