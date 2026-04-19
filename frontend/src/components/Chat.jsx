@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import axios from "axios"
 import ReactMarkdown from "react-markdown"
 
-const API = "https://annadata-backend.onrender.com"
+const API = "https://annadata-backend-7lcs.onrender.com"
 
 export default function Chat({ token, onLogout }) {
     const [messages, setMessages] = useState([])
