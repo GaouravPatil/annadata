@@ -1,7 +1,7 @@
 import { useState } from "react"
 import axios from "axios"
 
-const API = "http://127.0.0.1:8000"
+const API = "https://annadata-backend.onrender.com"
 
 export default function Auth({ onLogin }) {
     const [form, setForm] = useState({ name: "", location: "", age: "", language: "en" })
