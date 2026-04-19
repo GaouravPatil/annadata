@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, DateTime, Text, ForeignKey
+from sqlalchemy import create_engine, Column, String, Integer, DateTime, Text, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 import os
@@ -19,6 +19,7 @@ class Farmer(Base):
     phone = Column(String, unique=True)
     language = Column(String, default="en")
     location = Column(String)
+    age = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Session(Base):

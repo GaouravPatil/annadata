@@ -13,23 +13,27 @@ SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
 
 class RegisterRequest(BaseModel):
     name: str
-    phone: str
+    phone: str = ""
     language: str = "en"
     location: str = ""
+    age: int | None = None
 
 @router.post("/register")
 def register(req: RegisterRequest, db: DBSession = Depends(get_db)):
-    existing = db.query(Farmer).filter(Farmer.phone == req.phone).first()
-    if existing:
-        token = jwt.encode({"farmer_id": existing.id}, SECRET_KEY, algorithm="HS256")
-        return {"token": token, "farmer_id": existing.id}
+
+    if req.phone:
+        existing = db.query(Farmer).filter(Farmer.phone == req.phone).first()
+        if existing:
+            token = jwt.encode({"farmer_id": existing.id}, SECRET_KEY, algorithm="HS256")
+            return {"token": token, "farmer_id": existing.id}
 
     farmer = Farmer(
         id=str(uuid.uuid4()),
         name=req.name,
-        phone=req.phone,
+        phone=str(uuid.uuid4()), 
         language=req.language,
-        location=req.location
+        location=req.location,
+        age=req.age
     )
     db.add(farmer)
     db.commit()

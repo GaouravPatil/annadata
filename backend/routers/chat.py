@@ -32,6 +32,11 @@ class ChatRequest(BaseModel):
 @router.post("/chat")
 async def chat(req: ChatRequest, db: DBSession = Depends(get_db),
                farmer_id: str = Depends(get_farmer_id)):
+               
+
+    farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+    if not farmer:
+        raise HTTPException(status_code=401, detail="Farmer not found — please log in again")
 
     session_id = req.session_id
     if not session_id or session_id == "null":
@@ -79,6 +84,8 @@ async def chat(req: ChatRequest, db: DBSession = Depends(get_db),
     db.commit()
 
     return {"reply": reply, "session_id": session_id}
+
+
 
 @router.get("/history/{session_id}")
 def history(session_id: str, db: DBSession = Depends(get_db),
