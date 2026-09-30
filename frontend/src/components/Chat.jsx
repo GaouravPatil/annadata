@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import axios from "axios"
 import ReactMarkdown from "react-markdown"
 
-const API = "https://annadata-backend-7lcs.onrender.com"
+const API = import.meta.env.VITE_API_URL || "http://localhost:8000"
 
 export default function Chat({ token, onLogout }) {
     const [messages, setMessages] = useState([])

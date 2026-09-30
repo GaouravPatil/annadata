@@ -1,7 +1,7 @@
 import { useState } from "react"
 import axios from "axios"
 
-const API = "https://annadata-backend-7lcs.onrender.com"
+const API = import.meta.env.VITE_API_URL || "http://localhost:8000"
 
 export default function Auth({ onLogin }) {
     const [form, setForm] = useState({ name: "", location: "", age: "", language: "en" })

@@ -1,0 +1,42 @@
+# ── Env & secrets (examples are committed, real values are not) ──
+.env
+.env.local
+*.local
+
+# ── Python / FastAPI backend ──
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.sqlite3
+backend/annadata.db
+knowledge_base/chroma_db/
+backend/knowledge_base/chroma_db/
+*.log
+
+# ── Node / React frontend ──
+node_modules/
+frontend/node_modules/
+dist/
+dist-ssr/
+frontend/dist/
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Editors & OS ──
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

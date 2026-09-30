@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p knowledge_base/data knowledge_base/chroma_db
+RUN mkdir -p knowledge_base/data
 
 EXPOSE 8000
 

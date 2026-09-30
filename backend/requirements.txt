@@ -5,11 +5,7 @@ psycopg2-binary
 python-dotenv
 pydantic
 python-jose
-passlib
-bcrypt
 httpx
-groq
+mistralai
 alembic
 cachetools
-beautifulsoup4
-requests
