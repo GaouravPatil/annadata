@@ -80,7 +80,7 @@ python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-cp .env.example .env            # fill in GROQ_API_KEY, SECRET_KEY
+cp .env.example .env            # fill in MISTRAL_API_KEY, SECRET_KEY
 # DATABASE_URL defaults to sqlite:///./annadata.db — no Postgres needed locally
 
 python start.py                 # serves on http://localhost:8000
@@ -104,8 +104,9 @@ Backend (`backend/.env`):
 ```env
 DATABASE_URL=sqlite:///./annadata.db
 SECRET_KEY=change-me-local-secret
-GROQ_API_KEY=your_groq_api_key
-DATA_GOV_API_KEY=579b464db66ec23bdd000001cdd3946e44ce4aad38534209a181d0
+MISTRAL_API_KEY=your_mistral_api_key
+MISTRAL_MODEL=mistral-8b-latest
+DATA_GOV_API_KEY=your_data_gov_api_key
 PORT=8000
 ```
 
