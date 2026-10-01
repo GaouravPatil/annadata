@@ -25,7 +25,13 @@ def register(req: RegisterRequest, db: DBSession = Depends(get_db)):
         existing = db.query(Farmer).filter(Farmer.phone == req.phone).first()
         if existing:
             token = jwt.encode({"farmer_id": existing.id}, SECRET_KEY, algorithm="HS256")
-            return {"token": token, "farmer_id": existing.id}
+            return {
+                "token": token,
+                "farmer_id": existing.id,
+                "name": existing.name,
+                "location": existing.location,
+                "language": existing.language,
+            }
 
     farmer = Farmer(
         id=str(uuid.uuid4()),
@@ -38,4 +44,10 @@ def register(req: RegisterRequest, db: DBSession = Depends(get_db)):
     db.add(farmer)
     db.commit()
     token = jwt.encode({"farmer_id": farmer.id}, SECRET_KEY, algorithm="HS256")
-    return {"token": token, "farmer_id": farmer.id}
+    return {
+        "token": token,
+        "farmer_id": farmer.id,
+        "name": farmer.name,
+        "location": farmer.location,
+        "language": farmer.language,
+    }

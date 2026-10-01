@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     yield
 
 from models.database import Base, engine
-from routers import auth, chat
+from routers import auth, chat, info
 
 app = FastAPI(title="AnnaData API", lifespan=lifespan)
 
@@ -55,6 +55,7 @@ async def add_cors_headers(request: Request, call_next):
 
 app.include_router(auth.router)
 app.include_router(chat.router)
+app.include_router(info.router)
 
 @app.get("/")
 def root():

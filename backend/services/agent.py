@@ -2,6 +2,7 @@ import httpx
 import os
 import logging
 from services.weather import get_weather
+from services.mandi import fetch_mandi_prices as _fetch_mandi
 from services.cache import get_session_history, add_to_session
 from services.rag import search_knowledge_base
 from dotenv import load_dotenv
@@ -63,23 +64,13 @@ async def get_weather_context(lat: float, lon: float) -> str:
 
 async def get_mandi_prices(crop: str, state: str = "Maharashtra") -> str:
     try:
-        url = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
-        params = {
-            "api-key": os.getenv("DATA_GOV_API_KEY", "579b464db66ec23bdd000001cdd3946e44ce4aad38534209a181d0"),
-            "format": "json",
-            "filters[commodity]": crop,
-            "filters[state]": state,
-            "limit": 5
-        }
-        async with httpx.AsyncClient() as client_http:
-            response = await client_http.get(url, params=params, timeout=10)
-            data = response.json()
-
-        if not data.get("records"):
+        data = await _fetch_mandi(state=state, commodity=crop, limit=5)
+        records = data.get("records") or []
+        if not records:
             return f"No mandi price data found for {crop} in {state}."
 
         result = f"Current mandi prices for {crop} in {state}:\n"
-        for record in data["records"]:
+        for record in records:
             result += f"Market: {record.get('market', 'N/A')}, "
             result += f"Min: Rs.{record.get('min_price', 'N/A')}, "
             result += f"Max: Rs.{record.get('max_price', 'N/A')}, "
