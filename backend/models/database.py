@@ -8,9 +8,18 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./annadata.db")
 
+# Heroku-style URLs use postgres:// — SQLAlchemy needs postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+_is_sqlite = DATABASE_URL.startswith("sqlite")
+
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+    connect_args={"check_same_thread": False} if _is_sqlite else {},
+    # RDS / managed Postgres: recycle stale connections, verify before use
+    pool_pre_ping=not _is_sqlite,
+    pool_recycle=300 if not _is_sqlite else -1,
 )
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
